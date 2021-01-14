@@ -1,5 +1,6 @@
 library(rvest)
 library(lubridate)
+library(dplyr)
 
 year <- "2021" 
 month <- "december"
@@ -27,8 +28,8 @@ data <- webpage %>%
   html_text() %>%
   matrix(ncol = length(col_names) - 2, byrow = TRUE)
 
-month_df_jan <- as.data.frame(cbind(game_id, dates, data), stringsAsFactors = FALSE)
-names(month_df_jan) <- col_names
+month_df <- as.data.frame(cbind(game_id, dates, data), stringsAsFactors = FALSE)
+names(month_df) <- col_names
 
 
 
