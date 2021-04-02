@@ -1,32 +1,39 @@
 library(tidyverse)
+library(plyr)
 library(dplyr)
 library(utils)
 library(ggplot2)
 library(ggthemes)
-library(plyr)
+library(readxl)
+library(plotly)
+library(stringr)
 
 
 #this is to create the data
-players <- read_csv("players.csv") %>% select(`_id`, name)
+players <- read_csv("players.csv") %>% 
+  select(`_id`, name)
 salaries <- read_csv("salaries_1985to2018.csv") %>%
   inner_join(players, by = c("player_id" = "_id"))
 
 
-salaries <- salaries %>% filter(season_start >= 2000) %>%
+salaries1 <- salaries %>% 
+  filter(season_start >= 2000) %>%
   select(player_id, name, salary, year = season_start, team)
 
 # total salary by year
-yearly <- salaries %>% group_by(year) %>% 
-  summarise(tot_salary = sum(salary)* .000000001) #this is to make the y axis scale better
+yearly <- salaries1 %>% 
+  group_by(year) %>% 
+  dplyr::summarise(tot_salary = sum(salary) * .000000001) #this is to make the y axis scale better (billions)
 
 
 #just a rough graph
-ggplot(yearly, aes(x = year, y = tot_salary)) +
+ggplot(yearly, aes(x = year, y = tot_salary)) +      #doenst work now  dont know why
   geom_point(color = "cornflowerblue") +
   geom_line(color = "cornflowerblue") +
   expand_limits(y = .5) +
-  labs(x = "year", y = "total salary for league (billions)", 
-       title = "total salary of all players by year") +
+  labs(x = "Year", 
+       y = "Total League Salary (Billions)", 
+       title = "Total Salary of the League by Year") +
   theme_few()
 
 
@@ -55,13 +62,18 @@ ggplot() +
 
 
 
-# this is to adjust the salries to the yearly cpi
+# this is to adjust the salaries to the yearly cpi
+CPALTT01USM657N <- read_excel("CPALTT01USM657N.xls")
+
+
 
 cpi <- slice(CPALTT01USM657N, c(41:58))
 
 yearly$cpi <- cpi$CPI
 yearly$adjusted <- yearly$tot_salary / cpi$CPI *100
 
+
+#cant decide if this graph makes sense yet or not 
 ggplot() +
   geom_point(data = yearly, aes(x = year, y = adjusted), color = "cornflowerblue") +
   geom_line(data = yearly, aes(x = year, y = adjusted), color = "cornflowerblue") +
@@ -71,25 +83,18 @@ ggplot() +
   geom_text(aes(x = x, y = y, label = label),
             data = data.frame(x = 2008,
                             y = 53.5,
-                            label = "2008")) +
+                            label = "2008"), 
+            size = 3) +
   theme_few()
 
 
 
-
-
-
-
-
-
-
-###########################################################################
-
-team_salaries <- salaries %>% 
+####every teams salary####
+team_salaries <- salaries1 %>% 
   group_by(year, team) %>% 
   dplyr::summarise(tot_salary = sum(salary) * .000001)
 
-ggplot( data = team_salaries, aes(year, tot_salary)) +
+gg <- ggplot(data = team_salaries, aes(year, tot_salary)) +
   geom_line(aes(group = team), color = "gray70") +
   expand_limits(y = 0) +
   geom_smooth(se = F, color = "salmon") +
@@ -99,7 +104,9 @@ ggplot( data = team_salaries, aes(year, tot_salary)) +
        y = "total team salary (millions)") +
   theme_few()
 
+ggplotly(gg)
 
+##########
 # team ranking comparison by total salary by year, but doesnt work yet
 
 ranked_team_salaries <- team_salaries %>% 
@@ -156,3 +163,24 @@ salaries %>% filter(year %in% c(2000, 2005, 2010, 2015)) %>%
 
 
 
+
+
+
+#######
+#this selects the last word, which in this case is the mascot
+team_salaries$TEAM <- word(team_salaries$team, -1)
+
+
+#this chart is better because i got rid of the city,
+#which means that when teams move, they are combined
+gg <- ggplot(data = team_salaries, aes(year, tot_salary)) +
+  geom_line(aes(group = TEAM), color = "gray70") +
+  expand_limits(y = 0) +
+  geom_smooth(se = F, color = "salmon") +         #is there a way to make it so when you touch a line, then that line lights up?
+  labs(title = "team salaries over time", 
+       # subtitle = "(each line is a team, pink is the average)",
+       x = "year",
+       y = "total team salary (millions)") +
+  theme_few()
+
+ggplotly(gg)
