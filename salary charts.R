@@ -2,11 +2,10 @@ library(tidyverse)
 library(plyr)
 library(dplyr)
 library(utils)
-library(ggplot2)
 library(ggthemes)
 library(readxl)
 library(plotly)
-library(stringr)
+library(ggridges)
 
 
 #this is to create the data
@@ -94,9 +93,12 @@ team_salaries <- salaries1 %>%
   group_by(year, team) %>% 
   dplyr::summarise(tot_salary = sum(salary) * .000001)
 
-gg <- ggplot(data = team_salaries, aes(year, tot_salary)) +
-  geom_line(aes(group = team), color = "gray70") +
-  expand_limits(y = 0) +
+#this selects the last word, which in this case is the mascot
+team_salaries$TEAM <- word(team_salaries$team, -1)
+
+gg <- ggplot(data = fixed_names, aes(year, tot_salary)) +
+  geom_line(aes(group = team_name), color = "gray70") +
+  expand_limits(y = 45) +
   geom_smooth(se = F, color = "salmon") +
   labs(title = "team salaries over time", 
        subtitle = "(each line is a team, pink is the average)",
@@ -105,6 +107,31 @@ gg <- ggplot(data = team_salaries, aes(year, tot_salary)) +
   theme_few()
 
 ggplotly(gg)
+
+
+
+
+fixed_names <- team_salaries %>% 
+  mutate(team_name = case_when(
+    TEAM == "SuperSonics" ~ "Thunder",
+    team == ""
+    TRUE ~ TEAM 
+  ))
+
+team_salaries$TEAM <- word(team_salaries$team, -1)
+
+fixed_names$city <- word(fixed_names$team, 1)
+#interesting to know how this function works, but this isnt super helpful
+ggplot(team_salaries, aes(x = year, y = TEAM)) +
+  geom_density_ridges() +
+  labs(title = "team salaries over time",
+       x = "year",
+       y = "total team salary (millions)") +
+  theme_few()
+
+
+
+
 
 ##########
 # team ranking comparison by total salary by year, but doesnt work yet
@@ -167,20 +194,7 @@ salaries %>% filter(year %in% c(2000, 2005, 2010, 2015)) %>%
 
 
 #######
-#this selects the last word, which in this case is the mascot
-team_salaries$TEAM <- word(team_salaries$team, -1)
 
 
-#this chart is better because i got rid of the city,
-#which means that when teams move, they are combined
-gg <- ggplot(data = team_salaries, aes(year, tot_salary)) +
-  geom_line(aes(group = TEAM), color = "gray70") +
-  expand_limits(y = 0) +
-  geom_smooth(se = F, color = "salmon") +         #is there a way to make it so when you touch a line, then that line lights up?
-  labs(title = "team salaries over time", 
-       # subtitle = "(each line is a team, pink is the average)",
-       x = "year",
-       y = "total team salary (millions)") +
-  theme_few()
 
-ggplotly(gg)
+

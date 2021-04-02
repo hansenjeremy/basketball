@@ -1,0 +1,102 @@
+---
+title: "NBA Salaries"
+author: "Jeremy Hansen"
+date: "1/15/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Getting Started ##
+
+I found a very helpful [guide](https://statisticaloddsandends.wordpress.com/2020/08/29/nba-salaries/) to play around with NBA salary data.  The charts that I have made are only going to deal with the data from 2000-2017.  
+
+The first thing to do is load all the packages that we will use.  I used tidyverse, plyr, dplyr, utils, ggplot2, ggthemes, readxl, and plotly.  The important thing here is that you load plyr before dplyr, otherwise you will run into problems later.  
+
+The data is downloaded from [here](https://data.world/datadavis/nba-salaries).
+
+```{r, echo = FALSE, include = FALSE}
+library(tidyverse)
+library(plyr)
+library(dplyr)
+library(utils)
+library(ggplot2)
+library(ggthemes)
+library(readxl)
+library(plotly)
+```
+```{r, message=FALSE, warning = FALSE}
+
+players <- read_csv("players.csv") %>% 
+  select(`_id`, name)
+salaries <- read_csv("salaries_1985to2018.csv") %>%
+  inner_join(players, by = c("player_id" = "_id"))
+```
+
+## Some data manipulation and basic chart ##
+
+Now that the data is here, lets take a look at it.
+
+```{r}
+head(salaries)
+```
+
+Because I am only interested in 2000-2017, and only some of the columns, we'll handpick the ones that matter. I chose to multiply total salary by .000000001, in order to make the scale be in billions.
+
+```{r, warning=FALSE}
+salaries1 <- salaries %>% 
+  filter(season_start >= 2000) %>%
+  select(player_id, name, salary, year = season_start, team)
+
+# total salary by year
+yearly <- salaries1 %>% 
+  group_by(year) %>% 
+  dplyr::summarise(tot_salary = sum(salary) * .000000001)
+
+#just a rough graph
+ggplot(yearly, aes(x = year, y = tot_salary)) +
+  geom_point(color = "cornflowerblue") +
+  geom_line(color = "cornflowerblue") +
+  expand_limits(y = .5) +
+  labs(x = "Year", 
+       y = "Total League Salary (Billions)", 
+       title = "Total Salary of the League by Year") +
+  theme_few()
+```
+
+We see that the total salary has been increasing each year, except from about 2009-2014.  More recently, the amount of salary has been increasing more exponentially.  This brought up a question: How has the increase in total salary compared to yearly inflation rate?
+
+I went to [FRED](https://fred.stlouisfed.org/?gclid=CjwKCAiAl4WABhAJEiwATUnEF4fuIbnSi4txBwJuFGlgGRSrvhM6qq2W2GPuXVSaAu5WZ65FBnx1nBoCJigQAvD_BwE) and looked up the inflation rates for 2000-2017.  
+
+
+```{r}
+rates <- c(1.2, 1.8, 2.4, 2.1, 1.3, 0.1, 1.6, 1.5, 2.1, 3.2, 1.6, -0.4, 3.8, 2.8, 3.2, 3.4, 2.7, 2.3, 1.6, 2.8, 3.4)
+```
+
+
+
+
+
+
+
+```{r}
+
+inflation_df <- data.frame(year = 2000:2017,
+
+
+gg <- ggplot(data = team_salaries, aes(year, tot_salary)) +
+  geom_line(aes(group = team), color = "gray70") +
+  expand_limits(y = 0) +
+  geom_smooth(se = F, color = "salmon") +
+  labs(title = "team salaries over time", 
+       subtitle = "(each line is a team, pink is the average)",
+       x = "year",
+       y = "total team salary (millions)") +
+  theme_few()
+
+ggplotly(gg)
+
+
+```
